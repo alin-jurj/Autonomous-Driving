@@ -48,10 +48,14 @@ def process_image():
                 break
         pil_image = image.raw_image
         #gray_image = cv.cvtColor(np.array(pil_image), cv.COLOR_RGB2GRAY)
-        gray_image = np.array(pil_image)
+        rgb_image = np.array(pil_image)
 
-        canny_image = cv.bitwise_not(gray_image)
-        canny_image = cv.Canny(gray_image, 180, 255)
+        blur_image = cv.GaussianBlur(rgb_image, (0, 0), 5)
+        high_pass = cv.absdiff(rgb_image, blur_image)
+        shadow_free_image = cv.add(rgb_image, high_pass)
+
+        canny_image = cv.bitwise_not(shadow_free_image)
+        canny_image = cv.Canny(canny_image, 100, 255)
 
         take_half_image = make_half_image(canny_image)
         lines = cv.HoughLinesP(take_half_image, 1, np.pi / 100, 10, minLineLength=10, maxLineGap=4)
@@ -97,7 +101,7 @@ def process_image():
 
                 angle_radian = math.atan(x_offset / y_offset)
                 angle_degree = int(angle_radian * 180.0 / math.pi)
-                steering_angle = angle_degree % 90
+                steering_angle = angle_degree #% 90
             else:
                 if len(lanes) == 1:
                     x1, _, x2, _ = lanes[0]
@@ -106,12 +110,12 @@ def process_image():
 
                     angle_radian = math.atan(x_offset / y_offset)
                     angle_degree = int(angle_radian * 180.0 / math.pi)
-                    steering_angle = angle_degree % 90
+                    steering_angle = angle_degree #% 90
                 else:
                     steering_angle = 0
 
-        if 20 > steering_angle > 0:
-            steering_angle = steering_angle - 20
+        if 20 > abs(steering_angle) > 0:
+            steering_angle = 0
 
         if Steering_Angles.full:
             with Steering_Angles.mutex:
@@ -122,12 +126,12 @@ def process_image():
 
 def drive(robot: cozmo.robot.Robot = None):
      robot.set_head_angle(cozmo.robot.MIN_HEAD_ANGLE,
-                          in_parallel=True).wait_for_completed()
-     #robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
+                         in_parallel=True).wait_for_completed()
+     robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
+     action1 = robot.drive_straight(distance_mm(50), speed_mmps(25), should_play_anim=False, in_parallel=True)
+     action2 = None
      while True:
         # robot.say_text("Andrei is going home").wait_for_completed()
-        robot.drive_straight(distance_mm(150), speed_mmps(40)).wait_for_completed()
-
         steering = Steering_Angles.get()
         print(steering)
         while steering is None:
@@ -135,7 +139,19 @@ def drive(robot: cozmo.robot.Robot = None):
             if steering:
                 break
 
-        robot.turn_in_place(degrees(steering)).wait_for_completed()
+        if steering > 0:
+            robot.drive_wheels(50,25)
+        if steering < 0:
+            robot.drive_wheels(25,50)
+        if steering == 0:
+            robot.drive_wheels(25,25)
+        # if action1 is not None:
+        #     action1.abort()
+        #
+        # action1 = robot.drive_straight(distance_mm(50), speed_mmps(25), should_play_anim=False, in_parallel=True)
+        # action2 = robot.turn_in_place(degrees(steering), in_parallel=True)
+        # action2.wait_for_completed()
+        #robot.turn_in_place(degrees(steering)).wait_for_completed()
 
      return
 
@@ -180,11 +196,11 @@ def line_follower(robot: cozmo.robot.Robot):
     # plt.show()
 
 
-try:
-    cozmo.run_program(line_follower)
+# try:
+cozmo.run_program(line_follower)
     # cozmo.run_program(run, use_viewer=True, force_viewer_on_top=True)
-except SystemExit as e:
-    print('exception = "%s"' % e)
-    # ONLY FOR TESTING PURPOSES
-    print('\nGoing on without Cozmo: for testing purposes only!', 'red')
-    line_follower(None)
+# except SystemExit as e:
+#     print('exception = "%s"' % e)
+#     # ONLY FOR TESTING PURPOSES
+#     print('\nGoing on without Cozmo: for testing purposes only!', 'red')
+#     line_follower(None)
