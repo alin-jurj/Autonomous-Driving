@@ -11,7 +11,12 @@ from cozmo.util import degrees, distance_mm, speed_mmps
 CameraImages = Queue()
 Steering_Angles = Queue()
 
-
+def verifying_rgb_image(rgb_image):
+    rgb_image = np.array(rgb_image)
+    if np.all(rgb_image[:, :, 0] == rgb_image[:, :, 1]) and np.all(rgb_image[:, :, 0] == rgb_image[:, :, 2]):
+        return 0
+    else:
+        return 1
 def make_points(image, average):
     height, width = image.shape
     slope, intercept = average
@@ -50,12 +55,14 @@ def process_image():
         #gray_image = cv.cvtColor(np.array(pil_image), cv.COLOR_RGB2GRAY)
         rgb_image = np.array(pil_image)
 
-        blur_image = cv.GaussianBlur(rgb_image, (0, 0), 5)
+        blur_image = cv.GaussianBlur(rgb_image, (0, 0), 7)
         high_pass = cv.absdiff(rgb_image, blur_image)
         shadow_free_image = cv.add(rgb_image, high_pass)
 
-        canny_image = cv.bitwise_not(shadow_free_image)
-        canny_image = cv.Canny(canny_image, 100, 255)
+        hsv = cv.cvtColor(shadow_free_image, cv.COLOR_BGR2HSV)
+
+        #canny_image = cv.bitwise_not(shadow_free_image)
+        canny_image = cv.Canny(hsv, 100, 255)
 
         take_half_image = make_half_image(canny_image)
         lines = cv.HoughLinesP(take_half_image, 1, np.pi / 100, 10, minLineLength=10, maxLineGap=4)
@@ -125,11 +132,11 @@ def process_image():
 
 
 def drive(robot: cozmo.robot.Robot = None):
-     robot.set_head_angle(cozmo.robot.MIN_HEAD_ANGLE,
-                         in_parallel=True).wait_for_completed()
+     #robot.set_head_angle(cozmo.robot.MIN_HEAD_ANGLE,
+     #                    in_parallel=True).wait_for_completed()
      robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
-     action1 = robot.drive_straight(distance_mm(50), speed_mmps(25), should_play_anim=False, in_parallel=True)
-     action2 = None
+     #action1 = robot.drive_straight(distance_mm(50), speed_mmps(25), should_play_anim=False, in_parallel=True)
+     #action2 = None
      while True:
         # robot.say_text("Andrei is going home").wait_for_completed()
         steering = Steering_Angles.get()
@@ -140,9 +147,22 @@ def drive(robot: cozmo.robot.Robot = None):
                 break
 
         if steering > 0:
+            if steering > 60:
+                robot.drive_wheels(50,-50)
+            else:
+                if steering > 40:
+                    robot.drive_wheels(40,10)
+                else:
+                    robot.drive_wheels(50,25)
             robot.drive_wheels(50,25)
         if steering < 0:
-            robot.drive_wheels(25,50)
+            if steering < -60:
+                robot.drive_wheels(-50,50)
+            else:
+                if steering < -40:
+                    robot.drive_wheels(10,40)
+                else:
+                    robot.drive_wheels(25,50)
         if steering == 0:
             robot.drive_wheels(25,25)
         # if action1 is not None:
@@ -159,11 +179,13 @@ def drive(robot: cozmo.robot.Robot = None):
 def RobotCamera(robot: cozmo.robot.Robot = None):
     # robot.say_text("Andrei is going home").wait_for_completed()
     robot.camera.image_stream_enabled = True
-
+    robot.camera.color_image_enabled = True
     while True:
         latest_image = robot.world.latest_image
         if latest_image:
-            break
+            latest_image_array = np.array(latest_image.raw_image)
+            if verifying_rgb_image(latest_image_array):
+                break
 
     while latest_image:
         if CameraImages.full:
@@ -175,7 +197,9 @@ def RobotCamera(robot: cozmo.robot.Robot = None):
         while True:
             latest_image = robot.world.latest_image
             if latest_image:
-                break
+                latest_image_array = np.array(latest_image.raw_image)
+                if verifying_rgb_image(latest_image_array):
+                    break
 
     robot.camera.image_stream_enabled = False
 

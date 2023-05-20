@@ -29,6 +29,12 @@ import math
 import numpy as np
 from PIL import Image
 
+def verifying_rgb_image(rgb_image):
+    rgb_image = np.array(rgb_image)
+    if np.all(rgb_image[:, :, 0] == rgb_image[:, :, 1]) and np.all(rgb_image[:, :, 0] == rgb_image[:, :, 2]):
+        return 0
+    else:
+        return 1
 def make_points(image, average):
     height, width = image.shape
     slope, intercept = average
@@ -71,30 +77,40 @@ def process_image(image):
     #plt.show()
 
 
-    #Blurrr
-
-    # Aplică filtrul Gaussian pentru a estompa imaginea
-    blur_image = cv.GaussianBlur(rgb_image, (0, 0), 5)
-
-    # Calculează diferența dintre imaginea originală și imaginea estompată
+    # #Blurrr
+    #
+    # # Aplică filtrul Gaussian pentru a estompa imaginea
+    blur_image = cv.GaussianBlur(rgb_image, (0, 0), 7)
+    #
+    # # Calculează diferența dintre imaginea originală și imaginea estompată
     high_pass = cv.absdiff(rgb_image, blur_image)
-
-    # Însumează imaginea originală cu imaginea diferență pentru a obține imaginea fără umbre
+    #
+    # # Însumează imaginea originală cu imaginea diferență pentru a obține imaginea fără umbre
     shadow_free_image = cv.add(rgb_image, high_pass)
 
-    pil_image = Image.fromarray(shadow_free_image)
+    # pil_image = Image.fromarray(shadow_free_image)
+    # pil_image.show()
+
+
+
+    #canny_image = cv.bitwise_not(shadow_free_image)
+    #pil_image = Image.fromarray(canny_image)
+    #pil_image.show()
+
+    hsv = cv.cvtColor(shadow_free_image, cv.COLOR_BGR2HSV)
+    pil_image = Image.fromarray(hsv)
     pil_image.show()
+    canny_image = cv.inRange(hsv,0,20)
+    canny_image = cv.Canny(canny_image, 100, 255)
 
-
-
-    canny_image = cv.bitwise_not(shadow_free_image)
     pil_image = Image.fromarray(canny_image)
     pil_image.show()
-    canny_image = cv.Canny(canny_image, 100, 255)
+
 
     take_half_image = make_half_image(canny_image)
     lines = cv.HoughLinesP(take_half_image, 1, np.pi / 100, 10, minLineLength=10, maxLineGap=4)
-
+    pil_image = Image.fromarray(take_half_image)
+    pil_image.show()
     print(lines)
     # for line in lines:
     #     x1, y1, x2, y2 = line[0]
@@ -190,14 +206,16 @@ def process_image(image):
 def cozmo_program(robot: cozmo.robot.Robot):
     # robot.say_text("Andrei is going home").wait_for_completed()
     robot.camera.image_stream_enabled = True
-    robot.camera.color_image_enabled = False
+    robot.camera.color_image_enabled = True
 
     #robot.set_head_angle(cozmo.robot.MIN_HEAD_ANGLE,in_parallel=True).wait_for_completed()
     robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
     while True:
         latest_image = robot.world.latest_image
         if latest_image:
-            break
+            latest_image_array = np.array(latest_image.raw_image)
+            if verifying_rgb_image(latest_image_array):
+                break
 
     if latest_image:
     # rgb_image = np.array(latest_image.raw_image)
