@@ -51,9 +51,9 @@ def process_image():
             image = CameraImages.get()
             if image:
                 break
-        pil_image = image.raw_image
+        #pil_image = image.raw_image
         #gray_image = cv.cvtColor(np.array(pil_image), cv.COLOR_RGB2GRAY)
-        rgb_image = np.array(pil_image)
+        rgb_image = np.array(image.raw_image)
 
         blur_image = cv.GaussianBlur(rgb_image, (0, 0), 7)
         high_pass = cv.absdiff(rgb_image, blur_image)
@@ -61,8 +61,13 @@ def process_image():
 
         hsv = cv.cvtColor(shadow_free_image, cv.COLOR_BGR2HSV)
 
+        lower_green = np.array([26, 121, 66])
+        upper_green = np.array([102, 153, 247])
+
+        green_mask = cv.inRange(hsv, lower_green, upper_green)
+        res = cv.bitwise_and(rgb_image, rgb_image, mask = green_mask)
         #canny_image = cv.bitwise_not(shadow_free_image)
-        canny_image = cv.Canny(hsv, 100, 255)
+        canny_image = cv.Canny(res, 100, 255)
 
         take_half_image = make_half_image(canny_image)
         lines = cv.HoughLinesP(take_half_image, 1, np.pi / 100, 10, minLineLength=10, maxLineGap=4)
@@ -71,7 +76,7 @@ def process_image():
         right = []
 
         height, width = canny_image.shape
-        if len(lines) == 0:
+        if lines is None or len(lines) == 0:
             steering_angle = 0
         else:
             for line in lines:
@@ -132,9 +137,9 @@ def process_image():
 
 
 def drive(robot: cozmo.robot.Robot = None):
-     #robot.set_head_angle(cozmo.robot.MIN_HEAD_ANGLE,
-     #                    in_parallel=True).wait_for_completed()
-     robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
+     robot.set_head_angle(cozmo.robot.MIN_HEAD_ANGLE,
+                         in_parallel=True).wait_for_completed()
+     #robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
      #action1 = robot.drive_straight(distance_mm(50), speed_mmps(25), should_play_anim=False, in_parallel=True)
      #action2 = None
      while True:
@@ -148,19 +153,19 @@ def drive(robot: cozmo.robot.Robot = None):
 
         if steering > 0:
             if steering > 60:
-                robot.drive_wheels(50,-50)
+                robot.drive_wheels(50,10)
             else:
                 if steering > 40:
-                    robot.drive_wheels(40,10)
+                    robot.drive_wheels(30,15)
                 else:
-                    robot.drive_wheels(50,25)
+                    robot.drive_wheels(40,25)
             robot.drive_wheels(50,25)
         if steering < 0:
             if steering < -60:
-                robot.drive_wheels(-50,50)
+                robot.drive_wheels(10,50)
             else:
                 if steering < -40:
-                    robot.drive_wheels(10,40)
+                    robot.drive_wheels(10,30)
                 else:
                     robot.drive_wheels(25,50)
         if steering == 0:

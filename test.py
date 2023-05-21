@@ -63,10 +63,10 @@ def make_half_image(image):
 
 
 def process_image(image):
-    # gray_image = cv.cvtColor(np.array(pil_image), cv.COLOR_RGB2GRAY)
+    #rgb_image = cv.cvtColor(np.array(image), cv.COLOR_BGR2RGB)
     rgb_image = np.array(image.raw_image)
-    pil_image = Image.fromarray(rgb_image)
-    pil_image.show()
+    # pil_image = Image.fromarray(rgb_image)
+    # pil_image.show()
     # rgb_image = np.array(image.raw_image)
     # rgb_image = cv.cvtColor(rgb_image, cv.COLOR_RGB2BGR)
     # plt.imshow(rgb_image,cmap='viridis')
@@ -98,13 +98,20 @@ def process_image(image):
     #pil_image.show()
 
     hsv = cv.cvtColor(shadow_free_image, cv.COLOR_BGR2HSV)
-    pil_image = Image.fromarray(hsv)
-    pil_image.show()
-    canny_image = cv.inRange(hsv,0,20)
-    canny_image = cv.Canny(canny_image, 100, 255)
 
-    pil_image = Image.fromarray(canny_image)
-    pil_image.show()
+
+    lower_green = np.array([26, 109, 66])
+    upper_green = np.array([102, 153, 255])
+
+    green_mask = cv.inRange(hsv,lower_green,upper_green)
+
+
+    res = cv.bitwise_and(rgb_image, rgb_image, mask = green_mask)
+    #black_areas = cv.bitwise_and(hsv, hsv, mask=black_mask)
+    canny_image = cv.Canny(res, 100, 255)
+
+    pil_image = Image.fromarray(res)
+    pil_image.show(title="Green mask")
 
 
     take_half_image = make_half_image(canny_image)
@@ -126,7 +133,7 @@ def process_image(image):
     right = []
 
     height, width = take_half_image.shape
-    if len(lines) == 0:
+    if lines is None or len(lines) == 0:
         steering_angle = 0
     else:
         for line in lines:
