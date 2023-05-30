@@ -63,8 +63,8 @@ def make_half_image(image):
 
 
 def process_image(image):
-    #rgb_image = cv.cvtColor(np.array(image), cv.COLOR_BGR2RGB)
-    rgb_image = np.array(image.raw_image)
+    rgb_image = cv.cvtColor(np.array(image.raw_image), cv.COLOR_BGR2RGB)
+    # rgb_image = np.array(rgb_image)
     # pil_image = Image.fromarray(rgb_image)
     # pil_image.show()
     # rgb_image = np.array(image.raw_image)
@@ -76,17 +76,17 @@ def process_image(image):
     #plt.imshow(HSV_image)
     #plt.show()
 
-
-    # #Blurrr
     #
-    # # Aplică filtrul Gaussian pentru a estompa imaginea
-    blur_image = cv.GaussianBlur(rgb_image, (0, 0), 7)
-    #
-    # # Calculează diferența dintre imaginea originală și imaginea estompată
-    high_pass = cv.absdiff(rgb_image, blur_image)
-    #
-    # # Însumează imaginea originală cu imaginea diferență pentru a obține imaginea fără umbre
-    shadow_free_image = cv.add(rgb_image, high_pass)
+    # # #Blurrr
+    # #
+    # # # Aplică filtrul Gaussian pentru a estompa imaginea
+    # blur_image = cv.GaussianBlur(rgb_image, (0, 0), 7)
+    # #
+    # # # Calculează diferența dintre imaginea originală și imaginea estompată
+    # high_pass = cv.absdiff(rgb_image, blur_image)
+    # #
+    # # # Însumează imaginea originală cu imaginea diferență pentru a obține imaginea fără umbre
+    # shadow_free_image = cv.add(rgb_image, high_pass)
 
     # pil_image = Image.fromarray(shadow_free_image)
     # pil_image.show()
@@ -97,34 +97,42 @@ def process_image(image):
     #pil_image = Image.fromarray(canny_image)
     #pil_image.show()
 
-    hsv = cv.cvtColor(shadow_free_image, cv.COLOR_BGR2HSV)
+    hsv = cv.cvtColor(rgb_image, cv.COLOR_RGB2HSV)
 
 
-    lower_green = np.array([26, 109, 66])
-    upper_green = np.array([102, 153, 255])
+    # lower_green = np.array([26, 109, 66])
+    # upper_green = np.array([102, 153, 233])
+    # cele de sus sunt bune pentru lumina caldaa care nu e pe impuls
 
+    lower_green = np.array([0, 0, 106])
+    upper_green = np.array([108, 127, 255])
+    # lower_green = np.array([56, 24, 52])
+    # upper_green = np.array([104, 69, 150])
+    # lower_green = np.array([26, 121, 66])
+    # upper_green = np.array([102, 153, 257])
     green_mask = cv.inRange(hsv,lower_green,upper_green)
 
-
+    green_mask = cv.erode(green_mask, (3, 3), iterations=4)
     res = cv.bitwise_and(rgb_image, rgb_image, mask = green_mask)
     #black_areas = cv.bitwise_and(hsv, hsv, mask=black_mask)
     canny_image = cv.Canny(res, 100, 255)
 
-    pil_image = Image.fromarray(res)
+    canny_image = cv.dilate(canny_image, (3,3), iterations =1)
+    pil_image = Image.fromarray(canny_image)
     pil_image.show(title="Green mask")
 
 
-    take_half_image = make_half_image(canny_image)
-    lines = cv.HoughLinesP(take_half_image, 1, np.pi / 100, 10, minLineLength=10, maxLineGap=4)
-    pil_image = Image.fromarray(take_half_image)
-    pil_image.show()
+    canny_image = make_half_image(canny_image)
+    lines = cv.HoughLinesP(canny_image, 1, np.pi / 100, 10, minLineLength=10, maxLineGap=4)
+   # pil_image = Image.fromarray(ca)
+    #pil_image.show()
     print(lines)
     # for line in lines:
     #     x1, y1, x2, y2 = line[0]
     #     cv.line(take_half_image, (x1, y1), (x2, y2), (255, 255, 255), 6)
 
-    plt.imshow(take_half_image)
-    plt.show()
+   # plt.imshow(take_half_image)
+    #plt.show()
     #plt.imshow(canny_image)
     # plt.show()
     # plt.imshow(take_half_image)
@@ -132,7 +140,7 @@ def process_image(image):
     left = []
     right = []
 
-    height, width = take_half_image.shape
+    height, width = canny_image.shape
     if lines is None or len(lines) == 0:
         steering_angle = 0
     else:
@@ -149,23 +157,23 @@ def process_image(image):
             if slope < 0:
                 if x1 < width / 2 and x2 < width / 2:
                     left.append((slope, y_int))
-                    cv.line(take_half_image, (x1, y1), (x2, y2), (0, 255, 0), 5)
+                    cv.line(canny_image, (x1, y1), (x2, y2), (0, 255, 0), 5)
             else:
                 if x1 > width / 2 and x2 > width / 2:
                     right.append((slope, y_int))
-                    cv.line(take_half_image, (x1, y1), (x2, y2), (0, 255, 0), 5)
+                    cv.line(canny_image, (x1, y1), (x2, y2), (0, 255, 0), 5)
         lanes = []
-        plt.imshow(take_half_image)
+        plt.imshow(canny_image)
         plt.show()
         #print(left)
         if len(left) > 0:
             left_avg = np.average(left, axis=0)
-            lanes.append(make_points(take_half_image, left_avg))
+            lanes.append(make_points(canny_image, left_avg))
         #print(left_avg)
         #print(right)
         if len(right) > 0:
             right_avg = np.average(right, axis=0)
-            lanes.append(make_points(take_half_image, right_avg))
+            lanes.append(make_points(canny_image, right_avg))
         #print(right_avg)
         #cv.line(take_half_image, (lanes[0][0],lanes[0][1] ), (lanes[0][2],lanes[0][3] ), (255, 0, 0), 5)
         #cv.line(take_half_image, (lanes[1][0], lanes[1][1]), (lanes[1][2], lanes[1][3]), (255, 0, 0), 5)
@@ -187,7 +195,7 @@ def process_image(image):
             #cv.line(take_half_image, (avg_x, int(height/2)), (int(width/2), height), (255, 0, 0), 5)
             steering_angle = angle_degree #% 90
 
-            plt.imshow(take_half_image)
+            plt.imshow(canny_image)
             plt.show()
         else:
             if len(lanes) == 1:
@@ -215,7 +223,7 @@ def cozmo_program(robot: cozmo.robot.Robot):
     robot.camera.image_stream_enabled = True
     robot.camera.color_image_enabled = True
 
-    #robot.set_head_angle(cozmo.robot.MIN_HEAD_ANGLE,in_parallel=True).wait_for_completed()
+    #robot.set_head_angle(cozmo.robot.MIN_HEAD_ANGLE).wait_for_completed()
     robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
     while True:
         latest_image = robot.world.latest_image

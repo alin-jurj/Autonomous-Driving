@@ -53,24 +53,46 @@ def process_image():
                 break
         #pil_image = image.raw_image
         #gray_image = cv.cvtColor(np.array(pil_image), cv.COLOR_RGB2GRAY)
-        rgb_image = np.array(image.raw_image)
+        rgb_image = cv.cvtColor(np.array(image.raw_image), cv.COLOR_BGR2RGB)
+        #rgb_image = np.array(image.raw_image)
 
-        blur_image = cv.GaussianBlur(rgb_image, (0, 0), 7)
-        high_pass = cv.absdiff(rgb_image, blur_image)
-        shadow_free_image = cv.add(rgb_image, high_pass)
+        # blur_image = cv.GaussianBlur(rgb_image, (0, 0), 7)
+        # high_pass = cv.absdiff(rgb_image, blur_image)
+        # shadow_free_image = cv.add(rgb_image, high_pass)
 
-        hsv = cv.cvtColor(shadow_free_image, cv.COLOR_BGR2HSV)
+        hsv = cv.cvtColor(rgb_image, cv.COLOR_RGB2HSV)
 
-        lower_green = np.array([26, 121, 66])
-        upper_green = np.array([102, 153, 247])
+        # lower_green = np.array([26, 121, 66])
+        # upper_green = np.array([102, 153, 247])
 
+        # lower_green = np.array([56, 40, 69])
+        # upper_green = np.array([85, 128, 128])
+
+        # lower_green = np.array([16, 45, 64])
+        # upper_green = np.array([89, 128, 223])
+        # cele de sus sunt bune pentru lumina caldaa care nu e pe impuls.
+        # lower_green = np.array([26, 57, 66])
+        # upper_green = np.array([96, 149, 190])
+        # lower_green = np.array([50, 0, 64])
+        # upper_green = np.array([96, 246, 243])
+
+        # lower_green = np.array([0,0,139])
+        # upper_green = np.array([102,85,255])
+
+        lower_green = np.array([0, 0, 73])
+        upper_green = np.array([108, 201, 208])
         green_mask = cv.inRange(hsv, lower_green, upper_green)
+
+        #green_mask = cv.erode(green_mask, (3, 3), iterations=2)
+
         res = cv.bitwise_and(rgb_image, rgb_image, mask = green_mask)
+
+
         #canny_image = cv.bitwise_not(shadow_free_image)
         canny_image = cv.Canny(res, 100, 255)
-
-        take_half_image = make_half_image(canny_image)
-        lines = cv.HoughLinesP(take_half_image, 1, np.pi / 100, 10, minLineLength=10, maxLineGap=4)
+        #canny_image = cv.dilate(canny_image, (3, 3), iterations=1)
+        canny_image = make_half_image(canny_image)
+        lines = cv.HoughLinesP(canny_image, 1, np.pi / 100, 10, minLineLength=10, maxLineGap=4)
 
         left = []
         right = []

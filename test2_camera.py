@@ -33,13 +33,13 @@ import matplotlib.pyplot as plt
 def nothing(x):
     pass
 cv.namedWindow("Trackbars")
-cv.createTrackbar("L-H","Trackbars",26,179, nothing)
-cv.createTrackbar("L-S","Trackbars",121,255, nothing)
-cv.createTrackbar("L-V","Trackbars",66,255, nothing)
+cv.createTrackbar("L-H","Trackbars",0,179, nothing)
+cv.createTrackbar("L-S","Trackbars",0,255, nothing)
+cv.createTrackbar("L-V","Trackbars",62,255, nothing)
 
-cv.createTrackbar("U-H","Trackbars",102,179, nothing)
-cv.createTrackbar("U-S","Trackbars",153,255, nothing)
-cv.createTrackbar("U-V","Trackbars",247,255, nothing)
+cv.createTrackbar("U-H","Trackbars",95,179, nothing)
+cv.createTrackbar("U-S","Trackbars",127,255, nothing)
+cv.createTrackbar("U-V","Trackbars",255,255, nothing)
 
 def verifying_rgb_image(rgb_image):
     rgb_image = np.array(rgb_image)
@@ -47,6 +47,20 @@ def verifying_rgb_image(rgb_image):
         return 0
     else:
         return 1
+
+
+def make_half_image(image):
+    height, width = image.shape
+
+    mask = np.zeros_like(image)
+
+    polygon = np.array([[
+        (0, height * 1 / 2), (width, height * 1 / 2),
+        (width, height), (0, height), ]], np.int32)
+    cv.fillPoly(mask, polygon, 255)
+    filtered_image = cv.bitwise_and(image, mask)
+
+    return filtered_image
 def green_frame(image):
     hsv = cv.cvtColor(np.array(image), cv.COLOR_RGB2HSV)
 
@@ -87,9 +101,26 @@ def cozmo_program(robot: cozmo.robot.Robot):
                 # plt.imshow(rgb_image)
                 # plt.show()
                 green = green_frame(rgb_image)
+               # green_e= cv.erode(green, (3,3), iterations = 2)
                 res = cv.bitwise_and(rgb_image, rgb_image, mask = green)
-                cv.imshow('Image',green)
-                cv.imshow("Image2", res)
+
+                canny_image = cv.Canny(res, 100, 255)
+                #canny_image = cv.dilate(canny_image, (3, 3), iterations=1)
+
+               # canny_image = make_half_image(canny_image)
+                # #change image perspective
+                # height, width = canny_image.shape
+                # tl = (height/2,0)
+                # bl = (height,0)
+                # tr = (height/2, width)
+                # br = (height,width)
+                #
+                # pts1 = np.float32([tl, bl, tr, br])
+                # pts2 = np.float32([[0,0], [0,width], [height,0], [height,width]])
+                # matrix = cv.getPerspectiveTransform(pts1,pts2)
+                # perspective_transformed = cv.warpPerspective(canny_image,matrix, (height, width))
+                cv.imshow('Canny',canny_image)
+                cv.imshow("Fara erodare", green)
 
                 if cv.waitKey(1) & 0xFF == ord('q'):
                     break
