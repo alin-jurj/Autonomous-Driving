@@ -6,10 +6,23 @@ import numpy as np
 import threading
 import time
 import math
+import sklearn
+import joblib
 from cozmo.util import degrees, distance_mm, speed_mmps
+from tensorflow.keras.models import load_model
 
 CameraImages = Queue()
 Steering_Angles = Queue()
+
+
+classes = {
+    0: 'Yield',
+    1: 'Stop',
+    2: 'Turn left ahead',
+    3: 'Ahead only',
+    4: 'Green Light',
+    5: 'Red Light',
+    }
 
 def verifying_rgb_image(rgb_image):
     rgb_image = np.array(rgb_image)
@@ -17,6 +30,12 @@ def verifying_rgb_image(rgb_image):
         return 0
     else:
         return 1
+
+def region_of_interest(image):
+    height, width, _ = image.shape
+    image = image[:int(height-70),width-100:,:]
+    return image
+
 def make_points(image, average):
     height, width = image.shape
     slope, intercept = average
@@ -76,11 +95,11 @@ def process_image():
         # lower_green = np.array([50, 0, 64])
         # upper_green = np.array([96, 246, 243])
 
-        # lower_green = np.array([0,0,139])
-        # upper_green = np.array([102,85,255])
+        lower_green = np.array([0,23,116])
+        upper_green = np.array([110,116,255])
 
-        lower_green = np.array([0, 0, 73])
-        upper_green = np.array([108, 201, 208])
+        # lower_green = np.array([60, 64, 128])
+        # upper_green = np.array([104, 94, 212])
         green_mask = cv.inRange(hsv, lower_green, upper_green)
 
         #green_mask = cv.erode(green_mask, (3, 3), iterations=2)
@@ -175,23 +194,23 @@ def drive(robot: cozmo.robot.Robot = None):
 
         if steering > 0:
             if steering > 60:
-                robot.drive_wheels(50,10)
+                robot.drive_wheels(50,15)
             else:
                 if steering > 40:
-                    robot.drive_wheels(30,15)
+                    robot.drive_wheels(38,12)
                 else:
-                    robot.drive_wheels(40,25)
-            robot.drive_wheels(50,25)
+                    robot.drive_wheels(50,25)
+            #robot.drive_wheels(50,25)
         if steering < 0:
             if steering < -60:
-                robot.drive_wheels(10,50)
+                robot.drive_wheels(15,50)
             else:
                 if steering < -40:
-                    robot.drive_wheels(10,30)
+                    robot.drive_wheels(12,38)
                 else:
                     robot.drive_wheels(25,50)
         if steering == 0:
-            robot.drive_wheels(25,25)
+            robot.drive_wheels(18,18)
         # if action1 is not None:
         #     action1.abort()
         #
@@ -233,6 +252,33 @@ def RobotCamera(robot: cozmo.robot.Robot = None):
 
 def line_follower(robot: cozmo.robot.Robot):
     # CameraThread = threading.Thread(target=RobotCamera, args=(robot,))
+    # robot.camera.image_stream_enabled = True
+    # robot.camera.color_image_enabled = True
+    # robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
+    # model = load_model("model5.h5")
+    # while True:
+    #     latest_image = robot.world.latest_image
+    #     if latest_image:
+    #         latest_image_array = np.array(latest_image.raw_image)
+    #         if verifying_rgb_image(latest_image_array):
+    #             break
+    # #rgb_image = cv.cvtColor(np.array(latest_image.raw_image), cv.COLOR_BGR2RGB)
+    #
+    # imag = region_of_interest(np.array(latest_image.raw_image))
+    # imag = cv.resize(imag,(70,70))
+    #
+    # plt.imshow(imag)
+    # plt.show()
+    # data = []
+    # data.append(np.array(imag))
+    # images = np.array(data)
+    #
+    # pred = model.predict(images)
+    # classes_x = np.argmax(pred, axis=1)
+    # print(pred)
+    # print(classes[classes_x[0]])
+    # print(imag.shape)
+    # Acest calup se ocupa cu line follower pe curbe
     Process_image_Thread = threading.Thread(target=process_image)
     driveThread = threading.Thread(target=drive, args=(robot,))
     # CameraThread.start()

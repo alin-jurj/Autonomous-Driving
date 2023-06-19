@@ -1,3 +1,5 @@
+import sys
+
 import cozmo
 import numpy as np
 import matplotlib.pyplot as plt
@@ -34,12 +36,12 @@ def nothing(x):
     pass
 cv.namedWindow("Trackbars")
 cv.createTrackbar("L-H","Trackbars",0,179, nothing)
-cv.createTrackbar("L-S","Trackbars",0,255, nothing)
-cv.createTrackbar("L-V","Trackbars",62,255, nothing)
+cv.createTrackbar("L-S","Trackbars",26,255, nothing)
+cv.createTrackbar("L-V","Trackbars",68,255, nothing)
 
-cv.createTrackbar("U-H","Trackbars",95,179, nothing)
-cv.createTrackbar("U-S","Trackbars",127,255, nothing)
-cv.createTrackbar("U-V","Trackbars",255,255, nothing)
+cv.createTrackbar("U-H","Trackbars",105,179, nothing)
+cv.createTrackbar("U-S","Trackbars",170,255, nothing)
+cv.createTrackbar("U-V","Trackbars",210,255, nothing)
 
 def verifying_rgb_image(rgb_image):
     rgb_image = np.array(rgb_image)
@@ -48,7 +50,10 @@ def verifying_rgb_image(rgb_image):
     else:
         return 1
 
-
+def region_of_interest(image):
+    height, width, _ = image.shape
+    image = image[:,width-100:,:]
+    return image
 def make_half_image(image):
     height, width = image.shape
 
@@ -84,7 +89,7 @@ def cozmo_program(robot: cozmo.robot.Robot):
     robot.camera.image_stream_enabled = True
     robot.camera.color_image_enabled = True
     robot.set_head_angle(cozmo.robot.MIN_HEAD_ANGLE,
-                        in_parallel=True).wait_for_completed()
+                          in_parallel=True).wait_for_completed()
     #robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
     print(robot.battery_voltage)
     while True:
@@ -98,16 +103,21 @@ def cozmo_program(robot: cozmo.robot.Robot):
             if(verifying_rgb_image(latest_image.raw_image)==1):
             # Afișăm imaginea
                 rgb_image = cv.cvtColor(np.array(latest_image.raw_image), cv.COLOR_BGR2RGB)
-                # plt.imshow(rgb_image)
-                # plt.show()
+
+                #imag = region_of_interest(rgb_image)
+
+                #cv.imshow("Prediction",imag)
+                #plt.show()
+                #green = green_mark(rgb_image)
                 green = green_frame(rgb_image)
+
                # green_e= cv.erode(green, (3,3), iterations = 2)
                 res = cv.bitwise_and(rgb_image, rgb_image, mask = green)
 
                 canny_image = cv.Canny(res, 100, 255)
                 #canny_image = cv.dilate(canny_image, (3, 3), iterations=1)
-
-               # canny_image = make_half_image(canny_image)
+                #canny_image = cv.adaptiveThreshold(canny_image, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 11, 2)
+                #canny_image = make_half_image(canny_image)
                 # #change image perspective
                 # height, width = canny_image.shape
                 # tl = (height/2,0)
@@ -120,7 +130,7 @@ def cozmo_program(robot: cozmo.robot.Robot):
                 # matrix = cv.getPerspectiveTransform(pts1,pts2)
                 # perspective_transformed = cv.warpPerspective(canny_image,matrix, (height, width))
                 cv.imshow('Canny',canny_image)
-                cv.imshow("Fara erodare", green)
+                #cv.imshow("Fara erodare", green)
 
                 if cv.waitKey(1) & 0xFF == ord('q'):
                     break

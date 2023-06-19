@@ -104,25 +104,25 @@ def process_image(image):
     # upper_green = np.array([102, 153, 233])
     # cele de sus sunt bune pentru lumina caldaa care nu e pe impuls
 
-    lower_green = np.array([0, 0, 106])
-    upper_green = np.array([108, 127, 255])
+    lower_green = np.array([0, 26, 68])
+    upper_green = np.array([105, 170, 210])
     # lower_green = np.array([56, 24, 52])
     # upper_green = np.array([104, 69, 150])
     # lower_green = np.array([26, 121, 66])
     # upper_green = np.array([102, 153, 257])
     green_mask = cv.inRange(hsv,lower_green,upper_green)
 
-    green_mask = cv.erode(green_mask, (3, 3), iterations=4)
+    #green_mask = cv.erode(green_mask, (3, 3), iterations=4)
     res = cv.bitwise_and(rgb_image, rgb_image, mask = green_mask)
     #black_areas = cv.bitwise_and(hsv, hsv, mask=black_mask)
     canny_image = cv.Canny(res, 100, 255)
 
-    canny_image = cv.dilate(canny_image, (3,3), iterations =1)
+    #canny_image = cv.dilate(canny_image, (3,3), iterations =1)
     pil_image = Image.fromarray(canny_image)
     pil_image.show(title="Green mask")
 
 
-    canny_image = make_half_image(canny_image)
+    #canny_image = make_half_image(canny_image)
     lines = cv.HoughLinesP(canny_image, 1, np.pi / 100, 10, minLineLength=10, maxLineGap=4)
    # pil_image = Image.fromarray(ca)
     #pil_image.show()
@@ -157,11 +157,11 @@ def process_image(image):
             if slope < 0:
                 if x1 < width / 2 and x2 < width / 2:
                     left.append((slope, y_int))
-                    cv.line(canny_image, (x1, y1), (x2, y2), (0, 255, 0), 5)
+                    cv.line(canny_image, (x1, y1), (x2, y2), (255, 0, 255), 10)
             else:
                 if x1 > width / 2 and x2 > width / 2:
                     right.append((slope, y_int))
-                    cv.line(canny_image, (x1, y1), (x2, y2), (0, 255, 0), 5)
+                    cv.line(canny_image, (x1, y1), (x2, y2), (255, 0, 255), 10)
         lanes = []
         plt.imshow(canny_image)
         plt.show()
@@ -175,8 +175,8 @@ def process_image(image):
             right_avg = np.average(right, axis=0)
             lanes.append(make_points(canny_image, right_avg))
         #print(right_avg)
-        #cv.line(take_half_image, (lanes[0][0],lanes[0][1] ), (lanes[0][2],lanes[0][3] ), (255, 0, 0), 5)
-        #cv.line(take_half_image, (lanes[1][0], lanes[1][1]), (lanes[1][2], lanes[1][3]), (255, 0, 0), 5)
+        #cv.line(canny_image, (lanes[0][0],lanes[0][1] ), (lanes[0][2],lanes[0][3] ), (255, 0, 255), 10)
+        #cv.line(canny_image, (lanes[1][0], lanes[1][1]), (lanes[1][2], lanes[1][3]), (255, 0, 255), 10)
         print(lanes)
 
         if len(lanes) > 1:
@@ -192,7 +192,7 @@ def process_image(image):
             print(math.degrees(angle_radian))
             avg_x = int ((left_x2 + right_x2) / 2)
             angle_degree = int(angle_radian * 180.0 / math.pi)
-            #cv.line(take_half_image, (avg_x, int(height/2)), (int(width/2), height), (255, 0, 0), 5)
+            cv.line(canny_image, (avg_x, int(height/2)), (int(width/2), height), (255, 0, 255), 10)
             steering_angle = angle_degree #% 90
 
             plt.imshow(canny_image)
@@ -223,8 +223,8 @@ def cozmo_program(robot: cozmo.robot.Robot):
     robot.camera.image_stream_enabled = True
     robot.camera.color_image_enabled = True
 
-    #robot.set_head_angle(cozmo.robot.MIN_HEAD_ANGLE).wait_for_completed()
-    robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
+    robot.set_head_angle(cozmo.robot.MIN_HEAD_ANGLE).wait_for_completed()
+    #robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
     while True:
         latest_image = robot.world.latest_image
         if latest_image:
