@@ -122,7 +122,7 @@ def process_image(image):
     pil_image.show(title="Green mask")
 
 
-    #canny_image = make_half_image(canny_image)
+    canny_image = make_half_image(canny_image)
     lines = cv.HoughLinesP(canny_image, 1, np.pi / 100, 10, minLineLength=10, maxLineGap=4)
    # pil_image = Image.fromarray(ca)
     #pil_image.show()
@@ -206,7 +206,7 @@ def process_image(image):
                 angle_radian = math.atan(x_offset / y_offset)
                 angle_degree = int(angle_radian * 180.0 / math.pi)
 
-                #cv.line(take_half_image, (x2, int(height / 2)), (int(width / 2), height), (255, 0, 0), 5)
+                cv.line(canny_image, (x2, int(height / 2)), (int(width / 2), height), (255, 0, 0), 5)
                 steering_angle = angle_degree #% 90
             else:
                 print("0 linii detectate")

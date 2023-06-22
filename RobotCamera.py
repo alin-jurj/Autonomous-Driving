@@ -10,19 +10,12 @@ import sklearn
 import joblib
 from cozmo.util import degrees, distance_mm, speed_mmps
 from tensorflow.keras.models import load_model
+import db_connection
+import traffic_signs
 
 CameraImages = Queue()
 Steering_Angles = Queue()
 
-
-classes = {
-    0: 'Yield',
-    1: 'Stop',
-    2: 'Turn left ahead',
-    3: 'Ahead only',
-    4: 'Green Light',
-    5: 'Red Light',
-    }
 
 def verifying_rgb_image(rgb_image):
     rgb_image = np.array(rgb_image)
@@ -31,10 +24,7 @@ def verifying_rgb_image(rgb_image):
     else:
         return 1
 
-def region_of_interest(image):
-    height, width, _ = image.shape
-    image = image[:int(height-70),width-100:,:]
-    return image
+
 
 def make_points(image, average):
     height, width = image.shape
@@ -75,34 +65,14 @@ def process_image():
         rgb_image = cv.cvtColor(np.array(image.raw_image), cv.COLOR_BGR2RGB)
         #rgb_image = np.array(image.raw_image)
 
-        # blur_image = cv.GaussianBlur(rgb_image, (0, 0), 7)
-        # high_pass = cv.absdiff(rgb_image, blur_image)
-        # shadow_free_image = cv.add(rgb_image, high_pass)
 
         hsv = cv.cvtColor(rgb_image, cv.COLOR_RGB2HSV)
 
-        # lower_green = np.array([26, 121, 66])
-        # upper_green = np.array([102, 153, 247])
 
-        # lower_green = np.array([56, 40, 69])
-        # upper_green = np.array([85, 128, 128])
-
-        # lower_green = np.array([16, 45, 64])
-        # upper_green = np.array([89, 128, 223])
-        # cele de sus sunt bune pentru lumina caldaa care nu e pe impuls.
-        # lower_green = np.array([26, 57, 66])
-        # upper_green = np.array([96, 149, 190])
-        # lower_green = np.array([50, 0, 64])
-        # upper_green = np.array([96, 246, 243])
-
-        lower_green = np.array([0,23,116])
-        upper_green = np.array([110,116,255])
-
-        # lower_green = np.array([60, 64, 128])
-        # upper_green = np.array([104, 94, 212])
+        lower_green = np.array([0, 26, 68])
+        upper_green = np.array([105, 170, 210])
         green_mask = cv.inRange(hsv, lower_green, upper_green)
 
-        #green_mask = cv.erode(green_mask, (3, 3), iterations=2)
 
         res = cv.bitwise_and(rgb_image, rgb_image, mask = green_mask)
 
@@ -154,7 +124,7 @@ def process_image():
 
                 angle_radian = math.atan(x_offset / y_offset)
                 angle_degree = int(angle_radian * 180.0 / math.pi)
-                steering_angle = angle_degree #% 90
+                steering_angle = angle_degree
             else:
                 if len(lanes) == 1:
                     x1, _, x2, _ = lanes[0]
@@ -163,7 +133,7 @@ def process_image():
 
                     angle_radian = math.atan(x_offset / y_offset)
                     angle_degree = int(angle_radian * 180.0 / math.pi)
-                    steering_angle = angle_degree #% 90
+                    steering_angle = angle_degree
                 else:
                     steering_angle = 0
 
@@ -211,19 +181,12 @@ def drive(robot: cozmo.robot.Robot = None):
                     robot.drive_wheels(25,50)
         if steering == 0:
             robot.drive_wheels(18,18)
-        # if action1 is not None:
-        #     action1.abort()
-        #
-        # action1 = robot.drive_straight(distance_mm(50), speed_mmps(25), should_play_anim=False, in_parallel=True)
-        # action2 = robot.turn_in_place(degrees(steering), in_parallel=True)
-        # action2.wait_for_completed()
-        #robot.turn_in_place(degrees(steering)).wait_for_completed()
 
      return
 
 
 def RobotCamera(robot: cozmo.robot.Robot = None):
-    # robot.say_text("Andrei is going home").wait_for_completed()
+
     robot.camera.image_stream_enabled = True
     robot.camera.color_image_enabled = True
     while True:
@@ -238,8 +201,7 @@ def RobotCamera(robot: cozmo.robot.Robot = None):
             with CameraImages.mutex:
                 CameraImages.queue.clear()
         CameraImages.put(latest_image)
-        # gray_image = cv.cvtColor(latest_image, cv.COLOR_RGB2GRAY)
-        # print(CameraImages.qsize())
+
         while True:
             latest_image = robot.world.latest_image
             if latest_image:
@@ -251,33 +213,38 @@ def RobotCamera(robot: cozmo.robot.Robot = None):
 
 
 def line_follower(robot: cozmo.robot.Robot):
-    # CameraThread = threading.Thread(target=RobotCamera, args=(robot,))
-    # robot.camera.image_stream_enabled = True
-    # robot.camera.color_image_enabled = True
-    # robot.set_head_angle(cozmo.util.degrees(0)).wait_for_completed()
-    # model = load_model("model5.h5")
-    # while True:
-    #     latest_image = robot.world.latest_image
-    #     if latest_image:
-    #         latest_image_array = np.array(latest_image.raw_image)
-    #         if verifying_rgb_image(latest_image_array):
-    #             break
-    # #rgb_image = cv.cvtColor(np.array(latest_image.raw_image), cv.COLOR_BGR2RGB)
-    #
-    # imag = region_of_interest(np.array(latest_image.raw_image))
-    # imag = cv.resize(imag,(70,70))
-    #
-    # plt.imshow(imag)
-    # plt.show()
-    # data = []
-    # data.append(np.array(imag))
-    # images = np.array(data)
-    #
-    # pred = model.predict(images)
-    # classes_x = np.argmax(pred, axis=1)
-    # print(pred)
-    # print(classes[classes_x[0]])
-    # print(imag.shape)
+
+    while True:
+        ROAD = db_connection.db_location()
+        if ROAD:
+            break
+        time.sleep(3)
+    traffic_signs.recognition_and_drive()
+
+    ###### 1 - DRUMMMMMMMMMMMMMMMM
+    CameraThread = threading.Thread(target=RobotCamera, args=(robot,))
+    if ROAD == 1:
+        robot.drive_straight(distance_mm(80), speed_mmps(50)).wait_for_completed()
+
+        #robot.turn_in_place(degrees(7)).wait_for_completed()
+        #robot.turn_in_place(degrees(7)).wait_for_completed()
+
+    ###### 2 - DRUMMMMMMMMMMMMMMMM
+    if ROAD == 2:
+        robot.turn_in_place(degrees(50)).wait_for_completed()
+        robot.drive_straight(distance_mm(40), speed_mmps(50)).wait_for_completed()
+        robot.turn_in_place(degrees(4)).wait_for_completed()
+        robot.drive_straight(distance_mm(30), speed_mmps(50)).wait_for_completed()
+
+
+    ###### 3 - DRUMMMMMMM
+    if ROAD == 3:
+        robot.turn_in_place(degrees(110)).wait_for_completed()
+        robot.drive_straight(distance_mm(50), speed_mmps(50)).wait_for_completed()
+        robot.turn_in_place(degrees(7)).wait_for_completed()
+
+
+
     # Acest calup se ocupa cu line follower pe curbe
     Process_image_Thread = threading.Thread(target=process_image)
     driveThread = threading.Thread(target=drive, args=(robot,))
@@ -286,18 +253,6 @@ def line_follower(robot: cozmo.robot.Robot):
     driveThread.start()
     RobotCamera(robot)
 
-    # image = cv.imread('curba_ok.png')
-    # steering_value = process_image(image)
-    # print(steering_value)
-    # plt.imshow(image)
-    # plt.show()
 
-
-# try:
 cozmo.run_program(line_follower)
-    # cozmo.run_program(run, use_viewer=True, force_viewer_on_top=True)
-# except SystemExit as e:
-#     print('exception = "%s"' % e)
-#     # ONLY FOR TESTING PURPOSES
-#     print('\nGoing on without Cozmo: for testing purposes only!', 'red')
-#     line_follower(None)
+
