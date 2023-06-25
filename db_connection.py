@@ -17,11 +17,11 @@ def db_location():
         for result in results:
             ROAD_name = result['destination']
             if ROAD_name == "Church":
-                ROAD = 1
-            if ROAD_name == 'School':
                 ROAD = 2
-            if ROAD_name == 'Police':
+            if ROAD_name == 'School':
                 ROAD = 3
+            if ROAD_name == 'Police':
+                ROAD = 1
 
             return ROAD
     else:
