@@ -105,7 +105,7 @@ def process_image(image):
     # cele de sus sunt bune pentru lumina caldaa care nu e pe impuls
 
     lower_green = np.array([0, 26, 68])
-    upper_green = np.array([105, 170, 210])
+    upper_green = np.array([102, 170, 210])
     # lower_green = np.array([56, 24, 52])
     # upper_green = np.array([104, 69, 150])
     # lower_green = np.array([26, 121, 66])

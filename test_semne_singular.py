@@ -13,7 +13,7 @@ classes = {
     }
 
 
-model = load_model("model.h5")
+model = load_model("model2.h5")
 imag = cv.imread('green_light_2.png')
 rgb_image = cv.cvtColor(np.array(imag), cv.COLOR_BGR2RGB)
 imag = cv.resize(rgb_image,(30,30))

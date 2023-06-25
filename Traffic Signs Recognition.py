@@ -83,8 +83,8 @@ model = tensorflow.keras.models.Sequential([
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 
-epochs = 50
+epochs = 10
 history = model.fit(X_train, y_train, batch_size=32, epochs=epochs, validation_data=(X_val, y_val))
 
 
-model.save("model2.h5")
+model.save("model3.h5")

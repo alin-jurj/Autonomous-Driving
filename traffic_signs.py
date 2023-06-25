@@ -3,7 +3,7 @@ from cozmo.util import degrees, distance_mm, speed_mmps
 from tensorflow.keras.models import load_model
 import numpy as np
 import cv2 as cv
-import RobotCamera
+
 classes = {
     0:'Roundabout mandatory',
     1: 'Stop',
@@ -12,13 +12,21 @@ classes = {
     4: 'Green Light',
     5: 'Red Light',
     }
+
+def verifying_rgb_image(rgb_image):
+    rgb_image = np.array(rgb_image)
+    if np.all(rgb_image[:, :, 0] == rgb_image[:, :, 1]) and np.all(rgb_image[:, :, 0] == rgb_image[:, :, 2]):
+        return 0
+    else:
+        return 1
+
 def region_of_interest(image):
     height, width, _ = image.shape
     bgr_image = cv.cvtColor(np.array(image), cv.COLOR_RGB2BGR)
     image = bgr_image[46:145,176:281,:]
     return image
 
-def recognition_and_drive(robot: cozmo.robot.Robot = None):
+def recognition_and_drive(robot: cozmo.robot.Robot):
     robot.camera.image_stream_enabled = True
     robot.camera.color_image_enabled = True
 
@@ -34,7 +42,7 @@ def recognition_and_drive(robot: cozmo.robot.Robot = None):
             latest_image = robot.world.latest_image
             if latest_image:
                 latest_image_array = np.array(latest_image.raw_image)
-                if RobotCamera.verifying_rgb_image(latest_image_array):
+                if verifying_rgb_image(latest_image_array):
                     break
 
         imag = region_of_interest(np.array(latest_image_array))

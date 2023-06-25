@@ -39,7 +39,7 @@ cv.createTrackbar("L-H","Trackbars",0,179, nothing)
 cv.createTrackbar("L-S","Trackbars",26,255, nothing)
 cv.createTrackbar("L-V","Trackbars",68,255, nothing)
 
-cv.createTrackbar("U-H","Trackbars",105,179, nothing)
+cv.createTrackbar("U-H","Trackbars",102,179, nothing)
 cv.createTrackbar("U-S","Trackbars",170,255, nothing)
 cv.createTrackbar("U-V","Trackbars",210,255, nothing)
 

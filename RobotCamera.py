@@ -69,8 +69,12 @@ def process_image():
         hsv = cv.cvtColor(rgb_image, cv.COLOR_RGB2HSV)
 
 
+        # lower_green = np.array([0, 26, 68])
+        # upper_green = np.array([94, 170, 210])
+
         lower_green = np.array([0, 26, 68])
-        upper_green = np.array([105, 170, 210])
+        upper_green = np.array([94, 170, 210])
+
         green_mask = cv.inRange(hsv, lower_green, upper_green)
 
 
@@ -164,19 +168,19 @@ def drive(robot: cozmo.robot.Robot = None):
 
         if steering > 0:
             if steering > 60:
-                robot.drive_wheels(50,15)
+                robot.drive_wheels(50,10)
             else:
                 if steering > 40:
-                    robot.drive_wheels(38,12)
+                    robot.drive_wheels(40,10)
                 else:
                     robot.drive_wheels(50,25)
             #robot.drive_wheels(50,25)
         if steering < 0:
             if steering < -60:
-                robot.drive_wheels(15,50)
+                robot.drive_wheels(10,50)
             else:
                 if steering < -40:
-                    robot.drive_wheels(12,38)
+                    robot.drive_wheels(10,40)
                 else:
                     robot.drive_wheels(25,50)
         if steering == 0:
@@ -219,13 +223,13 @@ def line_follower(robot: cozmo.robot.Robot):
         if ROAD:
             break
         time.sleep(3)
-    traffic_signs.recognition_and_drive()
+    traffic_signs.recognition_and_drive(robot)
 
     ###### 1 - DRUMMMMMMMMMMMMMMMM
     CameraThread = threading.Thread(target=RobotCamera, args=(robot,))
     if ROAD == 1:
         robot.drive_straight(distance_mm(80), speed_mmps(50)).wait_for_completed()
-
+        db_connection.delete_request()
         #robot.turn_in_place(degrees(7)).wait_for_completed()
         #robot.turn_in_place(degrees(7)).wait_for_completed()
 
@@ -235,14 +239,14 @@ def line_follower(robot: cozmo.robot.Robot):
         robot.drive_straight(distance_mm(40), speed_mmps(50)).wait_for_completed()
         robot.turn_in_place(degrees(4)).wait_for_completed()
         robot.drive_straight(distance_mm(30), speed_mmps(50)).wait_for_completed()
-
+        db_connection.delete_request()
 
     ###### 3 - DRUMMMMMMM
     if ROAD == 3:
         robot.turn_in_place(degrees(110)).wait_for_completed()
         robot.drive_straight(distance_mm(50), speed_mmps(50)).wait_for_completed()
         robot.turn_in_place(degrees(7)).wait_for_completed()
-
+        db_connection.delete_request()
 
 
     # Acest calup se ocupa cu line follower pe curbe
@@ -252,6 +256,7 @@ def line_follower(robot: cozmo.robot.Robot):
     Process_image_Thread.start()
     driveThread.start()
     RobotCamera(robot)
+
 
 
 cozmo.run_program(line_follower)
